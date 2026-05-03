@@ -133,7 +133,7 @@ OR use Live Server in VS Code
 
 **Shanmukha Akhilesh**
 📧 [akhileshgondrala27@gmail.com](mailto:akhileshgondrala27@gmail.com)
-🔗 LinkedIn: (Add your LinkedIn link)
+🔗 LinkedIn: (https://github.com/shanmukha0527/Ressume_Analyzer)
 
 ---
 
