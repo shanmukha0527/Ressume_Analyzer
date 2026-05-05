@@ -2,6 +2,9 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// ── Backend URL (single place to update) ──────────────────────
+const API = 'https://ressume-analyzer.onrender.com';
+
 // ── App state ──────────────────────────────────────────────────
 let extractedResumeText = '';
 let lastAnalysisResult = null;
@@ -10,10 +13,10 @@ let previewOpen = false;
 let pieChart = null, barChart = null, radar = null;
 
 // ── DOM helpers ────────────────────────────────────────────────
-const show = id => document.getElementById(id).style.display = 'block';
-const hide = id => document.getElementById(id).style.display = 'none';
+const show     = id => document.getElementById(id).style.display = 'block';
+const hide     = id => document.getElementById(id).style.display = 'none';
 const showFlex = id => document.getElementById(id).style.display = 'flex';
-const el = id => document.getElementById(id);
+const el       = id => document.getElementById(id);
 
 // ── Role pills ─────────────────────────────────────────────────
 function setRole(role) {
@@ -33,7 +36,7 @@ function checkReady() {
 
 // ── Drag & Drop ────────────────────────────────────────────────
 function handleDragOver(e) { e.preventDefault(); el('dropZone').classList.add('drag-over'); }
-function handleDragLeave() { el('dropZone').classList.remove('drag-over'); }
+function handleDragLeave()  { el('dropZone').classList.remove('drag-over'); }
 function handleDrop(e) {
     e.preventDefault(); el('dropZone').classList.remove('drag-over');
     if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
@@ -50,9 +53,9 @@ async function processFile(file) {
     el('processingMsg').textContent = 'Reading ' + file.name + '...';
     const ext = file.name.split('.').pop().toLowerCase();
     try {
-        if (ext === 'pdf') extractedResumeText = await readPDF(file);
+        if (ext === 'pdf')                        extractedResumeText = await readPDF(file);
         else if (ext === 'docx' || ext === 'doc') extractedResumeText = await readDOCX(file);
-        else if (ext === 'txt') extractedResumeText = await readTXT(file);
+        else if (ext === 'txt')                   extractedResumeText = await readTXT(file);
         else throw new Error('Unsupported format. Please upload PDF, DOCX, or TXT.');
         if (extractedResumeText.trim().length < 20) throw new Error('Very little text found.');
         showFilePreview(file, extractedResumeText);
@@ -93,7 +96,7 @@ function readTXT(file) {
 function showFilePreview(file, text) {
     hide('processingRow');
     const ext = file.name.split('.').pop().toLowerCase();
-    const icons = { pdf: '📕', docx: '📘', doc: '📘', txt: '📄' };
+    const icons  = { pdf: '📕', docx: '📘', doc: '📘', txt: '📄' };
     const colors = { pdf: '#e0705520', docx: '#7eb8f520', doc: '#7eb8f520', txt: '#c8f55a20' };
     el('fileIconBox').textContent = icons[ext] || '📄';
     el('fileIconBox').style.background = colors[ext] || '#c8f55a20';
@@ -136,7 +139,7 @@ async function handleAnalyze() {
     el('loadingStatus').textContent = 'Sending to server...';
 
     try {
-        const resp = await fetch('http://127.0.0.1:3000/analyze', {
+        const resp = await fetch(`${API}/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ resumeText: extractedResumeText, jobRole })
@@ -156,7 +159,7 @@ async function handleAnalyze() {
         el('analyzeBtn').disabled = false;
         let msg = err.message;
         if (msg.includes('Failed to fetch'))
-            msg = 'Cannot reach the server. Make sure node server.js is running.';
+            msg = 'Cannot reach the server. Render may be waking up — wait 30s and try again.';
         el('errorMessage').innerHTML = '<strong>Error:</strong> ' + msg;
     }
 }
@@ -175,14 +178,14 @@ function renderResults(result, jobRole) {
         '<p>' + (result.summary || '') + '</p>' +
         (result.salary_range
             ? '<p style="margin-top:8px;font-size:12px;color:#666360">💰 Avg salary: ' +
-            result.salary_range + ' · 🗓 Experience: ' + result.experience + '</p>'
+              result.salary_range + ' · 🗓 Experience: ' + result.experience + '</p>'
             : '') +
         '</div>',
-        listCard('Strengths', '✓', result.strengths, '#c8f55a', 0.10),
-        listCard('Areas to improve', '⚡', result.weaknesses, '#f5c842', 0.20),
-        listCard('Skills gap for ' + jobRole, '△', result.skills_gap, '#e07070', 0.30),
-        listCard('ATS optimisation tips', '◈', result.ats_tips, '#7eb8f5', 0.40),
-        listCard('Suggested career paths', '→', result.career_paths, '#c8f55a', 0.50),
+        listCard('Strengths',                       '✓', result.strengths,       '#c8f55a', 0.10),
+        listCard('Areas to improve',                '⚡', result.weaknesses,      '#f5c842', 0.20),
+        listCard('Skills gap for ' + jobRole,       '△', result.skills_gap,      '#e07070', 0.30),
+        listCard('ATS optimisation tips',           '◈', result.ats_tips,        '#7eb8f5', 0.40),
+        listCard('Suggested career paths',          '→', result.career_paths,    '#c8f55a', 0.50),
         result.required_skills
             ? listCard('Required skills for this role', '★', result.required_skills, '#f5c842', 0.60)
             : ''
@@ -212,7 +215,7 @@ async function handleImprove() {
 
     try {
         el('improveStatus').textContent = 'AI is rewriting your resume...';
-        const resp = await fetch('http://127.0.0.1:3000/improve', {
+        const resp = await fetch(`${API}/improve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -267,7 +270,7 @@ async function handleDashboard() {
     el('dashboardOutput').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
-        const resp = await fetch('http://127.0.0.1:3000/dashboard', {
+        const resp = await fetch(`${API}/dashboard`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ analysisResult: lastAnalysisResult, jobRole: lastJobRole })
@@ -285,13 +288,13 @@ async function handleDashboard() {
 }
 
 function renderDashboard(data) {
-    el('statCurrent').textContent = data.summary.current_score;
+    el('statCurrent').textContent  = data.summary.current_score;
     el('statImproved').textContent = data.summary.improved_score;
-    el('statGaps').textContent = data.summary.skills_missing;
+    el('statGaps').textContent     = data.summary.skills_missing;
 
     if (pieChart) { pieChart.destroy(); pieChart = null; }
     if (barChart) { barChart.destroy(); barChart = null; }
-    if (radar) { radar.destroy(); radar = null; }
+    if (radar)    { radar.destroy();    radar    = null; }
 
     pieChart = new Chart(el('skillsPieChart'), {
         type: 'doughnut',
@@ -363,7 +366,7 @@ async function handleInterview() {
 
     try {
         el('interviewStatus').textContent = 'Generating questions for ' + lastJobRole + '...';
-        const resp = await fetch('http://127.0.0.1:3000/interview', {
+        const resp = await fetch(`${API}/interview`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
