@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Resume Analyzer</title>
+
+  <!-- Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+
+  <!-- External libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-tag">AI-Powered Tool</div>
+      <h1>Resume<br><span>Analyzer</span></h1>
+      <p>Upload your resume — get AI feedback, improve it, and prepare for interviews.</p>
+    </div>
+
+    <!-- Job Role -->
+    <div class="card">
+      <div class="card-label">Target job role</div>
+      <input class="job-input" id="jobRole" type="text" placeholder="e.g. AIML Engineer, Data Analyst..." />
+      <div class="pills" id="pillsContainer">
+        <button class="pill" onclick="setRole('AIML Engineer')">AIML Engineer</button>
+        <button class="pill" onclick="setRole('Software Engineer')">Software Engineer</button>
+        <button class="pill" onclick="setRole('Data Analyst')">Data Analyst</button>
+        <button class="pill" onclick="setRole('Data Scientist')">Data Scientist</button>
+        <button class="pill" onclick="setRole('DevOps Engineer')">DevOps Engineer</button>
+        <button class="pill" onclick="setRole('Product Manager')">Product Manager</button>
+        <button class="pill" onclick="setRole('UX Designer')">UX Designer</button>
+      </div>
+    </div>
+
+    <!-- File Upload -->
+    <div class="card">
+      <div class="card-label">Upload your resume</div>
+      <div class="drop-zone" id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)">
+        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt" onchange="handleFileSelect(event)" />
+        <span class="drop-icon">📄</span>
+        <div class="drop-title">Drop your resume here</div>
+        <div class="drop-sub">or click to browse</div>
+        <div class="format-badges">
+          <span class="fmt fmt-pdf">PDF</span>
+          <span class="fmt fmt-docx">DOCX</span>
+          <span class="fmt fmt-txt">TXT</span>
+        </div>
+      </div>
+      <div class="processing-row" id="processingRow">
+        <div class="mini-spinner"></div>
+        <span id="processingMsg">Reading file...</span>
+      </div>
+      <div class="file-preview" id="filePreview">
+        <div class="file-icon" id="fileIconBox"></div>
+        <div class="file-info">
+          <div class="file-name" id="fileName"></div>
+          <div class="file-meta" id="fileMeta"></div>
+        </div>
+        <button class="file-remove" onclick="removeFile()">×</button>
+      </div>
+      <button class="preview-toggle" id="previewToggle" onclick="toggleTextPreview()">▸ Show extracted text</button>
+      <div class="text-preview" id="textPreview"></div>
+    </div>
+
+    <!-- Analyze Button -->
+    <button class="analyze-btn" id="analyzeBtn" onclick="handleAnalyze()" disabled>
+      Analyze My Resume <span class="arrow">→</span>
+    </button>
+
+    <!-- Loading -->
+    <div class="loading-card" id="loadingCard">
+      <div class="spinner"></div>
+      <p>Analyzing your resume with AI...</p>
+      <div class="loading-status" id="loadingStatus">Sending to server...</div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-card" id="errorCard">
+      <p id="errorMessage"><strong>Something went wrong.</strong> Please try again.</p>
+    </div>
+
+    <!-- Placeholder -->
+    <div class="results-placeholder" id="resultsPlaceholder">
+      <div class="results-icon">✦</div>
+      <h3>Your analysis will appear here</h3>
+      <p>Upload your resume and click Analyze.</p>
+      <div class="preview-chips">
+        <span class="preview-chip">ATS Score</span>
+        <span class="preview-chip">Skills Gap</span>
+        <span class="preview-chip">Strengths</span>
+        <span class="preview-chip">Career Paths</span>
+      </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div id="resultsOutput">
+      <div class="results-header">
+        <span class="results-title">✦ Analysis complete</span>
+        <span class="results-role-badge" id="resultRoleBadge"></span>
+      </div>
+      <div id="resultSections"></div>
+      <button class="reset-btn" onclick="resetForm()">← Analyze another resume</button>
+    </div>
+
+    <!-- 3 Action Buttons -->
+    <div id="actionButtons">
+      <button class="action-btn btn-improve" id="improveBtn" onclick="handleImprove()">
+        ✨ Improve My Resume (Target: 90+ ATS Score)
+      </button>
+      <button class="action-btn btn-dashboard" id="dashboardBtn" onclick="handleDashboard()">
+        📊 View Visual Dashboard
+      </button>
+      <button class="action-btn btn-interview" id="interviewBtn" onclick="handleInterview()">
+        🎯 Generate Interview Questions
+      </button>
+    </div>
+
+    <!-- Improve Resume Output -->
+    <div id="improveOutput">
+      <div class="section-loading" id="improveLoading">
+        <div class="spinner"></div>
+        <p>Rewriting your resume for 90+ ATS score...</p>
+        <div class="loading-status" id="improveStatus">AI is optimizing keywords...</div>
+      </div>
+      <div id="improveContent" style="display:none">
+        <div class="results-header" style="margin-top:1.5rem">
+          <span class="results-title">✨ Improved Resume</span>
+        </div>
+        <div class="score-upgrade">
+          <div class="score-box">
+            <div class="num" id="oldScore" style="color:#f5c842">—</div>
+            <div class="lbl">Your Score</div>
+          </div>
+          <div class="score-arrow">→</div>
+          <div class="score-box">
+            <div class="num" id="newScore" style="color:#c8f55a">—</div>
+            <div class="lbl">New Score</div>
+          </div>
+        </div>
+        <div class="resume-compare">
+          <div class="resume-box">
+            <div class="resume-box-title" style="color:#f5c842">Original Resume</div>
+            <pre id="originalResumeText"></pre>
+          </div>
+          <div class="resume-box">
+            <div class="resume-box-title" style="color:#c8f55a">Improved Resume</div>
+            <pre id="improvedResumeText"></pre>
+          </div>
+        </div>
+        <div class="result-section" style="animation-delay:0.1s">
+          <div class="result-section-title" style="color:#c8f55a88"><span style="color:#c8f55a">✓</span> Changes Made
+          </div>
+          <ul id="changesList"></ul>
+        </div>
+        <div class="result-section" style="animation-delay:0.2s">
+          <div class="result-section-title" style="color:#7eb8f588"><span style="color:#7eb8f5">◈</span> Keywords Added
+          </div>
+          <div id="keywordsAdded" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
+        </div>
+        <button class="copy-btn" onclick="copyImprovedResume()">📋 Copy Improved Resume to Clipboard</button>
+      </div>
+    </div>
+
+    <!-- Dashboard Output -->
+    <div id="dashboardOutput">
+      <div class="section-loading" id="dashboardLoading">
+        <div class="spinner"></div>
+        <p>Building your visual dashboard...</p>
+      </div>
+      <div id="dashboardContent" style="display:none">
+        <div class="results-header" style="margin-top:1.5rem">
+          <span class="results-title">📊 Visual Dashboard</span>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-num" id="statCurrent" style="color:#f5c842">—</div>
+            <div class="stat-lbl">Current Score</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="statImproved" style="color:#c8f55a">—</div>
+            <div class="stat-lbl">After Improve</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="statGaps" style="color:#e07070">—</div>
+            <div class="stat-lbl">Skills Missing</div>
+          </div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-title">Skills Breakdown</div>
+            <canvas id="skillsPieChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">Score Comparison</div>
+            <canvas id="scoreBarChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card" style="margin-top:12px">
+          <div class="chart-card-title">Skill Category Radar</div>
+          <canvas id="radarChart" style="max-height:280px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Output -->
+    <div id="interviewOutput">
+      <div class="section-loading" id="interviewLoading">
+        <div class="spinner"></div>
+        <p>Generating interview questions based on your resume...</p>
+        <div class="loading-status" id="interviewStatus">Analyzing your skills...</div>
+      </div>
+      <div id="interviewContent" style="display:none">
+        <div class="results-header" style="margin-top:1.5rem">
+          <span class="results-title">🎯 Interview Questions</span>
+          <span class="results-role-badge" id="interviewRoleBadge"></span>
+        </div>
+        <div class="interview-tabs">
+          <button class="itab active" onclick="switchTab('technical', this)">💻 Technical</button>
+          <button class="itab" onclick="switchTab('behavioral', this)">🤝 Behavioral</button>
+          <button class="itab" onclick="switchTab('role_specific', this)">🎯 Role-Specific</button>
+        </div>
+        <div class="interview-panel active" id="panel-technical">
+          <div id="questions-technical"></div>
+        </div>
+        <div class="interview-panel" id="panel-behavioral">
+          <div id="questions-behavioral"></div>
+        </div>
+        <div class="interview-panel" id="panel-role_specific">
+          <div id="questions-role_specific"></div>
+        </div>
+        <div class="prep-tips">
+          <div class="prep-tips-title">📚 Preparation Tips</div>
+          <ul id="prepTipsList" style="padding-left:1.2rem"></ul>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+
+  <!-- App script -->
+  <script src="script.js"></script>
+</body>
+
+</html>
