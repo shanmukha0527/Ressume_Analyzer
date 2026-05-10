@@ -116,63 +116,14 @@
       <button class="reset-btn" onclick="resetForm()">← Analyze another resume</button>
     </div>
 
-    <!-- 3 Action Buttons -->
+    <!-- 2 Action Buttons -->
     <div id="actionButtons">
-      <button class="action-btn btn-improve" id="improveBtn" onclick="handleImprove()">
-        ✨ Improve My Resume (Target: 90+ ATS Score)
-      </button>
       <button class="action-btn btn-dashboard" id="dashboardBtn" onclick="handleDashboard()">
         📊 View Visual Dashboard
       </button>
       <button class="action-btn btn-interview" id="interviewBtn" onclick="handleInterview()">
         🎯 Generate Interview Questions
       </button>
-    </div>
-
-    <!-- Improve Resume Output -->
-    <div id="improveOutput">
-      <div class="section-loading" id="improveLoading">
-        <div class="spinner"></div>
-        <p>Rewriting your resume for 90+ ATS score...</p>
-        <div class="loading-status" id="improveStatus">AI is optimizing keywords...</div>
-      </div>
-      <div id="improveContent" style="display:none">
-        <div class="results-header" style="margin-top:1.5rem">
-          <span class="results-title">✨ Improved Resume</span>
-        </div>
-        <div class="score-upgrade">
-          <div class="score-box">
-            <div class="num" id="oldScore" style="color:#f5c842">—</div>
-            <div class="lbl">Your Score</div>
-          </div>
-          <div class="score-arrow">→</div>
-          <div class="score-box">
-            <div class="num" id="newScore" style="color:#c8f55a">—</div>
-            <div class="lbl">New Score</div>
-          </div>
-        </div>
-        <div class="resume-compare">
-          <div class="resume-box">
-            <div class="resume-box-title" style="color:#f5c842">Original Resume</div>
-            <pre id="originalResumeText"></pre>
-          </div>
-          <div class="resume-box">
-            <div class="resume-box-title" style="color:#c8f55a">Improved Resume</div>
-            <pre id="improvedResumeText"></pre>
-          </div>
-        </div>
-        <div class="result-section" style="animation-delay:0.1s">
-          <div class="result-section-title" style="color:#c8f55a88"><span style="color:#c8f55a">✓</span> Changes Made
-          </div>
-          <ul id="changesList"></ul>
-        </div>
-        <div class="result-section" style="animation-delay:0.2s">
-          <div class="result-section-title" style="color:#7eb8f588"><span style="color:#7eb8f5">◈</span> Keywords Added
-          </div>
-          <div id="keywordsAdded" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
-        </div>
-        <button class="copy-btn" onclick="copyImprovedResume()">📋 Copy Improved Resume to Clipboard</button>
-      </div>
     </div>
 
     <!-- Dashboard Output -->
