@@ -2,8 +2,8 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── Backend URL (single place to update) ──────────────────────
-const API = 'https://ressume-analyzer.onrender.com';
+// ── Backend URL ────────────────────────────────────────────────
+const API = 'http://localhost:3000';
 
 // ── App state ──────────────────────────────────────────────────
 let extractedResumeText = '';
@@ -13,10 +13,10 @@ let previewOpen = false;
 let pieChart = null, barChart = null, radar = null;
 
 // ── DOM helpers ────────────────────────────────────────────────
-const show     = id => document.getElementById(id).style.display = 'block';
-const hide     = id => document.getElementById(id).style.display = 'none';
+const show = id => document.getElementById(id).style.display = 'block';
+const hide = id => document.getElementById(id).style.display = 'none';
 const showFlex = id => document.getElementById(id).style.display = 'flex';
-const el       = id => document.getElementById(id);
+const el = id => document.getElementById(id);
 
 // ── Role pills ─────────────────────────────────────────────────
 function setRole(role) {
@@ -36,7 +36,7 @@ function checkReady() {
 
 // ── Drag & Drop ────────────────────────────────────────────────
 function handleDragOver(e) { e.preventDefault(); el('dropZone').classList.add('drag-over'); }
-function handleDragLeave()  { el('dropZone').classList.remove('drag-over'); }
+function handleDragLeave() { el('dropZone').classList.remove('drag-over'); }
 function handleDrop(e) {
     e.preventDefault(); el('dropZone').classList.remove('drag-over');
     if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
@@ -53,11 +53,11 @@ async function processFile(file) {
     el('processingMsg').textContent = 'Reading ' + file.name + '...';
     const ext = file.name.split('.').pop().toLowerCase();
     try {
-        if (ext === 'pdf')                        extractedResumeText = await readPDF(file);
+        if (ext === 'pdf') extractedResumeText = await readPDF(file);
         else if (ext === 'docx' || ext === 'doc') extractedResumeText = await readDOCX(file);
-        else if (ext === 'txt')                   extractedResumeText = await readTXT(file);
+        else if (ext === 'txt') extractedResumeText = await readTXT(file);
         else throw new Error('Unsupported format. Please upload PDF, DOCX, or TXT.');
-        if (extractedResumeText.trim().length < 20) throw new Error('Very little text found.');
+        if (extractedResumeText.trim().length < 20) throw new Error('Very little text found in your resume.');
         showFilePreview(file, extractedResumeText);
     } catch (err) {
         hide('processingRow'); show('errorCard');
@@ -96,7 +96,7 @@ function readTXT(file) {
 function showFilePreview(file, text) {
     hide('processingRow');
     const ext = file.name.split('.').pop().toLowerCase();
-    const icons  = { pdf: '📕', docx: '📘', doc: '📘', txt: '📄' };
+    const icons = { pdf: '📕', docx: '📘', doc: '📘', txt: '📄' };
     const colors = { pdf: '#e0705520', docx: '#7eb8f520', doc: '#7eb8f520', txt: '#c8f55a20' };
     el('fileIconBox').textContent = icons[ext] || '📄';
     el('fileIconBox').style.background = colors[ext] || '#c8f55a20';
@@ -115,8 +115,7 @@ function showFilePreview(file, text) {
 function toggleTextPreview() {
     previewOpen = !previewOpen;
     el('textPreview').style.display = previewOpen ? 'block' : 'none';
-    el('previewToggle').textContent = previewOpen
-        ? '▾ Hide extracted text' : '▸ Show extracted text';
+    el('previewToggle').textContent = previewOpen ? '▾ Hide extracted text' : '▸ Show extracted text';
 }
 
 function removeFile() {
@@ -133,10 +132,10 @@ async function handleAnalyze() {
     lastJobRole = jobRole;
 
     hide('resultsPlaceholder'); hide('resultsOutput'); hide('errorCard');
-    hide('actionButtons'); hide('improveOutput'); hide('dashboardOutput'); hide('interviewOutput');
+    hide('actionButtons'); hide('dashboardOutput'); hide('interviewOutput');
     show('loadingCard');
     el('analyzeBtn').disabled = true;
-    el('loadingStatus').textContent = 'Sending to server...';
+    el('loadingStatus').textContent = 'Sending to AI...';
 
     try {
         const resp = await fetch(`${API}/analyze`, {
@@ -159,7 +158,7 @@ async function handleAnalyze() {
         el('analyzeBtn').disabled = false;
         let msg = err.message;
         if (msg.includes('Failed to fetch'))
-            msg = 'Cannot reach the server. Render may be waking up — wait 30s and try again.';
+            msg = 'Cannot reach the server. Make sure server.js is running on port 3000.';
         el('errorMessage').innerHTML = '<strong>Error:</strong> ' + msg;
     }
 }
@@ -171,23 +170,19 @@ function renderResults(result, jobRole) {
 
     el('resultSections').innerHTML = [
         '<div class="result-section" style="animation-delay:0s">' +
-        '<div class="result-section-title"><span>◎</span> ATS compatibility score</div>' +
+        '<div class="result-section-title"><span>◎</span> ATS Compatibility Score</div>' +
         '<div class="score-display"><span class="score-number" style="color:' + col + '">' + score + '</span>' +
         '<span style="font-size:13px;color:#666360">/ 100 · ' + (result.score_label || '') + '</span></div>' +
         '<div class="score-bar-track"><div class="score-bar-fill" id="scoreBar" style="width:0%;background:' + col + '"></div></div>' +
-        '<p>' + (result.summary || '') + '</p>' +
-        (result.salary_range
-            ? '<p style="margin-top:8px;font-size:12px;color:#666360">💰 Avg salary: ' +
-              result.salary_range + ' · 🗓 Experience: ' + result.experience + '</p>'
-            : '') +
-        '</div>',
-        listCard('Strengths',                       '✓', result.strengths,       '#c8f55a', 0.10),
-        listCard('Areas to improve',                '⚡', result.weaknesses,      '#f5c842', 0.20),
-        listCard('Skills gap for ' + jobRole,       '△', result.skills_gap,      '#e07070', 0.30),
-        listCard('ATS optimisation tips',           '◈', result.ats_tips,        '#7eb8f5', 0.40),
-        listCard('Suggested career paths',          '→', result.career_paths,    '#c8f55a', 0.50),
+        '<p>' + (result.summary || '') + '</p></div>',
+        listCard('Strengths', '✓', result.strengths, '#c8f55a', 0.10),
+        listCard('Areas to Improve', '⚡', result.weaknesses, '#f5c842', 0.20),
+        listCard('Skills Gap for ' + jobRole, '△', result.skills_gap, '#e07070', 0.30),
+        listCard('Skills Present', '◈', result.skills_present, '#7eb8f5', 0.35),
+        listCard('ATS Optimisation Tips', '◈', result.ats_tips, '#a78bfa', 0.40),
+        listCard('Suggested Career Paths', '→', result.career_paths, '#c8f55a', 0.50),
         result.required_skills
-            ? listCard('Required skills for this role', '★', result.required_skills, '#f5c842', 0.60)
+            ? listCard('Required Skills for this Role', '★', result.required_skills, '#f5c842', 0.60)
             : ''
     ].join('');
 
@@ -202,62 +197,6 @@ function listCard(title, icon, items, color, delay) {
         '<div class="result-section-title" style="color:' + color + '88">' +
         '<span style="color:' + color + '">' + icon + '</span> ' + title + '</div>' +
         '<ul>' + items.map(i => '<li>' + i + '</li>').join('') + '</ul></div>';
-}
-
-// ── IMPROVE RESUME ─────────────────────────────────────────────
-async function handleImprove() {
-    if (!lastAnalysisResult) return;
-    el('improveBtn').disabled = true;
-    el('improveContent').style.display = 'none';
-    show('improveOutput');
-    show('improveLoading');
-    el('improveOutput').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    try {
-        el('improveStatus').textContent = 'AI is rewriting your resume...';
-        const resp = await fetch(`${API}/improve`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                resumeText: extractedResumeText,
-                jobRole: lastJobRole,
-                analysisResult: lastAnalysisResult
-            })
-        });
-        if (!resp.ok) { const e = await resp.json(); throw new Error(e.error); }
-        const result = await resp.json();
-        hide('improveLoading');
-        renderImprove(result);
-    } catch (err) {
-        hide('improveLoading');
-        show('errorCard');
-        el('errorMessage').innerHTML = '<strong>Improve error:</strong> ' + err.message;
-    }
-    el('improveBtn').disabled = false;
-}
-
-function renderImprove(result) {
-    el('oldScore').textContent = lastAnalysisResult.overall_score || '—';
-    el('newScore').textContent = result.new_ats_score || '90+';
-    el('originalResumeText').textContent = extractedResumeText;
-    el('improvedResumeText').textContent = result.improved_resume || '';
-    el('changesList').innerHTML = (result.changes_made || [])
-        .map(c => '<li>' + c + '</li>').join('');
-    el('keywordsAdded').innerHTML = (result.keywords_added || []).map(k =>
-        '<span style="background:#c8f55a12;border:1px solid #c8f55a33;color:#c8f55a;' +
-        'font-size:11px;padding:3px 10px;border-radius:100px;">' + k + '</span>'
-    ).join('');
-    el('improveContent').style.display = 'block';
-    el('improveContent').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function copyImprovedResume() {
-    const text = el('improvedResumeText').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        const btn = document.querySelector('.copy-btn');
-        btn.textContent = '✓ Copied to clipboard!';
-        setTimeout(() => btn.textContent = '📋 Copy Improved Resume to Clipboard', 2000);
-    });
 }
 
 // ── VISUAL DASHBOARD ───────────────────────────────────────────
@@ -288,13 +227,14 @@ async function handleDashboard() {
 }
 
 function renderDashboard(data) {
-    el('statCurrent').textContent  = data.summary.current_score;
-    el('statImproved').textContent = data.summary.improved_score;
-    el('statGaps').textContent     = data.summary.skills_missing;
+    const summary = data.summary || {};
+    el('statCurrent').textContent = summary.current_score ?? '—';
+    el('statImproved').textContent = summary.improved_score ?? '—';
+    el('statGaps').textContent = summary.skills_missing ?? '—';
 
     if (pieChart) { pieChart.destroy(); pieChart = null; }
     if (barChart) { barChart.destroy(); barChart = null; }
-    if (radar)    { radar.destroy();    radar    = null; }
+    if (radar) { radar.destroy(); radar = null; }
 
     pieChart = new Chart(el('skillsPieChart'), {
         type: 'doughnut',
@@ -391,12 +331,14 @@ function renderInterview(result) {
     el('interviewRoleBadge').textContent = lastJobRole;
     ['technical', 'behavioral', 'role_specific'].forEach(cat => {
         const questions = result[cat] || [];
-        el('questions-' + cat).innerHTML = questions.map(q =>
-            '<div class="question-card">' +
-            '<div class="question-text">' + q.question + '</div>' +
-            '<div class="question-tip">' + q.tip + '</div>' +
-            '</div>'
-        ).join('');
+        el('questions-' + cat).innerHTML = questions.length
+            ? questions.map(q =>
+                '<div class="question-card">' +
+                '<div class="question-text">' + q.question + '</div>' +
+                '<div class="question-tip">💡 ' + q.tip + '</div>' +
+                '</div>'
+            ).join('')
+            : '<p style="color:#666;padding:1rem">No questions generated for this category.</p>';
     });
     el('prepTipsList').innerHTML = (result.preparation_tips || [])
         .map(t => '<li>' + t + '</li>').join('');
@@ -414,7 +356,7 @@ function switchTab(cat, btn) {
 // ── Reset ──────────────────────────────────────────────────────
 function resetForm() {
     hide('resultsOutput'); hide('errorCard'); hide('actionButtons');
-    hide('improveOutput'); hide('dashboardOutput'); hide('interviewOutput');
+    hide('dashboardOutput'); hide('interviewOutput');
     show('resultsPlaceholder');
     removeFile();
     el('jobRole').value = '';
